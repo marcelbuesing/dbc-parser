@@ -2,8 +2,6 @@ extern crate clap;
 
 use can_dbc;
 use clap::{App, Arg};
-use nom;
-use nom::verbose_errors;
 
 use std::cmp;
 use std::fs::File;
@@ -32,14 +30,7 @@ fn main() -> io::Result<()> {
         Ok(dbc_content) => println!("DBC Content{:#?}", dbc_content),
         Err(e) => {
             match e {
-                can_dbc::Error::NomError(nom::Err::Incomplete(needed)) => eprintln!("Error incomplete input, needed: {:?}", needed),
-                can_dbc::Error::NomError(nom::Err::Error(ctx)) => {
-                    match ctx {
-                        verbose_errors::Context::Code(i, kind) => eprintln!("Error Kind: {:?}, Code: {:?}", kind, String::from_utf8(i.to_vec())),
-                        verbose_errors::Context::List(l)=> eprintln!("Error List: {:?}", l),
-                    }
-                }
-                can_dbc::Error::NomError(nom::Err::Failure(ctx)) => eprintln!("Failure {:?}", ctx),
+                can_dbc::Error::Nom(nom ) => eprintln!("Nom {:?}", nom),
                 can_dbc::Error::Incomplete(dbc, remaining) => eprintln!("Not all data in buffer was read {:#?}, remaining unparsed (length: {}): {}\n...(truncated)", dbc, remaining.len(), String::from_utf8_lossy(&remaining[0..cmp::min(100, remaining.len())]).to_string())
             }
         }

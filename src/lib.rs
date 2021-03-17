@@ -42,8 +42,7 @@ extern crate serde;
 extern crate serde_derive;
 
 use derive_getters::Getters;
-use nom::types::CompleteByteSlice;
-use nom::*;
+use nom::AsBytes;
 
 pub mod parser;
 
@@ -51,7 +50,6 @@ pub mod parser;
 mod tests {
 
     use super::*;
-    use std::str;
 
     const SAMPLE_DBC: &'static [u8] = b"
 VERSION \"0.1\"
@@ -132,18 +130,13 @@ SIG_VALTYPE_ 2000 Signal_8 : 1;
             Ok(dbc_content) => println!("DBC Content{:#?}", dbc_content),
             Err(e) => {
                 match e {
-                    Error::NomError(nom::Err::Incomplete(needed)) => {
+                    Error::Nom(nom::Err::Incomplete(needed)) => {
                         eprintln!("Error incomplete input, needed: {:?}", needed)
                     }
-                    Error::NomError(nom::Err::Error(ctx)) => match ctx {
-                        verbose_errors::Context::Code(i, kind) => eprintln!(
-                            "Error Kind: {:?}, Code: {:?}",
-                            kind,
-                            str::from_utf8(i.as_bytes())
-                        ),
-                        verbose_errors::Context::List(l) => eprintln!("Error List: {:?}", l),
-                    },
-                    Error::NomError(nom::Err::Failure(ctx)) => eprintln!("Failure {:?}", ctx),
+                    Error::Nom(nom::Err::Error(verbose_error)) => {
+                        eprintln!("Verbose Error: {:?}", verbose_error);
+                    }
+                    Error::Nom(nom::Err::Failure(ctx)) => eprintln!("Failure {:?}", ctx),
                     Error::Incomplete(dbc, remaining) => eprintln!(
                         "Not all data in buffer was read {:#?}, remaining unparsed: {}",
                         dbc,
@@ -268,7 +261,7 @@ pub enum Error<'a> {
     /// Occurs when e.g. an unexpected symbol occurs.
     Incomplete(DBC, Vec<u8>),
     /// Parser failed
-    NomError(nom::Err<nom::types::CompleteByteSlice<'a>, u32>),
+    Nom(nom::Err<nom::error::Error<&'a [u8]>>),
 }
 
 /// Baudrate of network in kbit/s
@@ -634,15 +627,11 @@ pub struct DBC {
 impl DBC {
     /// Read a DBC from a buffer
     pub fn from_slice(buffer: &[u8]) -> Result<DBC, Error> {
-        match parser::dbc(CompleteByteSlice(buffer)) {
-            Ok((remaining, dbc)) => {
-                if !remaining.is_empty() {
-                    return Err(Error::Incomplete(dbc, remaining.as_bytes().to_vec()));
-                }
-                Ok(dbc)
-            }
-            Err(e) => Err(Error::NomError(e)),
+        let (remaining, dbc) = parser::dbc(buffer).map_err(Error::Nom)?;
+        if !remaining.is_empty() {
+            return Err(Error::Incomplete(dbc, remaining.as_bytes().to_vec()));
         }
+        Ok(dbc)
     }
 
     pub fn signal_by_name(&self, message_id: MessageId, signal_name: &str) -> Option<&Signal> {
