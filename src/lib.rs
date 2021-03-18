@@ -261,8 +261,7 @@ pub enum Error<'a> {
     /// Occurs when e.g. an unexpected symbol occurs.
     Incomplete(DBC, Vec<u8>),
     /// Parser failed
-    // Nom(nom::Err<nom::error::VerboseError<&'a str>>),
-    Nom(nom::Err<nom::error::Error<&'a str>>),
+    Nom(nom::Err<VerboseError<&'a str>>),
 }
 
 /// Baudrate of network in kbit/s

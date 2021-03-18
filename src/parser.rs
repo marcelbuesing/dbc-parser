@@ -8,11 +8,11 @@ use nom::{
     alt, char,
     character::complete::{digit1, line_ending, multispace0, space0, space1},
     do_parse,
-    error::{ContextError, ParseError},
+    error::VerboseError,
     flat_map, many0, many1, many_till, map, map_res, named,
     number::complete::double,
     opt, parse_to, preceded, recognize, separated_list0, tag, take_till, take_while, take_while1,
-    tuple, value, IResult,
+    tuple, value,
 };
 
 use crate::{
@@ -520,46 +520,46 @@ fn is_quote(chr: char) -> bool {
 }
 
 // Multi space
-named!(multispace1( &str ) -> Vec<char>, many1!(char!(' ')));
+named!(multispace1<&str, Vec<char>, VerboseError<&str>>, many1!(char!(' ')));
 
 // Abreviation for multispace1
-named!(ms( &str ) -> Vec<char>, many1!(char!(' ')));
+named!(ms<&str, Vec<char>, VerboseError<&str>>, many1!(char!(' ')));
 
 // One or multiple spaces
-named!(ms0( &str ) -> Vec<char>, many0!(char!(' ')));
+named!(ms0<&str, Vec<char>, VerboseError<&str>>, many0!(char!(' ')));
 
 // Colon
-named!(colon( &str ) -> char, char!(':'));
+named!(colon<&str, char, VerboseError<&str>>, char!(':'));
 
 // Comma aka ','
-named!(comma( &str ) -> char, char!(','));
+named!(comma<&str, char, VerboseError<&str>>, char!(','));
 
 // Comma aka ';'
-named!(semi_colon( &str ) -> char, char!(';'));
+named!(semi_colon<&str, char, VerboseError<&str>>, char!(';'));
 
 // Quote aka '"'
-named!(quote( &str ) -> char, char!('"'));
+named!(quote<&str, char, VerboseError<&str>>, char!('"'));
 
-named!(pipe( &str ) -> char, char!('|'));
+named!(pipe<&str, char, VerboseError<&str>>, char!('|'));
 
-named!(at( &str ) -> char, char!('@'));
+named!(at<&str, char, VerboseError<&str>>, char!('@'));
 
 // brace open aka '('
-named!(brc_open( &str ) -> char, char!('('));
+named!(brc_open<&str, char, VerboseError<&str>>, char!('('));
 
 // brace close aka '('
-named!(brc_close( &str ) -> char, char!(')'));
+named!(brc_close<&str, char, VerboseError<&str>>, char!(')'));
 
 // bracket open aka '['
-named!(brk_open( &str ) -> char, char!('['));
+named!(brk_open<&str, char, VerboseError<&str>>, char!('['));
 
 // bracket close aka ']'
-named!(brk_close( &str ) -> char, char!(']'));
+named!(brk_close<&str, char, VerboseError<&str>>, char!(']'));
 
 // A valid C_identifier. C_identifiers start with a  alphacharacter or an underscore
 // and may further consist of alpha­numeric, characters and underscore
 named!(
-    c_ident ( &str ) -> String,
+    c_ident <&str, String, VerboseError<&str>>,
     map!(
         recognize!(do_parse!(
             take_while1!(|x| is_c_ident_head(x))
@@ -570,20 +570,20 @@ named!(
     )
 );
 
-named!(c_ident_vec ( &str ) -> Vec<String>, separated_list0!(comma, c_ident));
+named!(c_ident_vec <&str, Vec<String>, VerboseError<&str>>, separated_list0!(comma, c_ident));
 
 named!(
-    u32_s( &str ) -> u32,
+    u32_s<&str, u32, VerboseError<&str>>,
     map_res!(digit1, |x: &str| x.parse::<u32>())
 );
 
 named!(
-    u64_s( &str ) -> u64,
+    u64_s<&str, u64, VerboseError<&str>>,
     map_res!(digit1, |x: &str| x.parse::<u64>())
 );
 
 named!(
-    i64_digit1 ( &str ) -> i64,
+    i64_digit1 <&str, i64, VerboseError<&str>>,
     flat_map!(
         recognize!(tuple!(opt!(alt!(char!('+') | char!('-'))), digit1)),
         parse_to!(i64)
@@ -591,7 +591,7 @@ named!(
 );
 
 named!(
-    char_string( &str ) -> String,
+    char_string<&str, String, VerboseError<&str>>,
     do_parse!(
         quote
             >> s: take_till!(|c| is_quote(c as char))
@@ -600,21 +600,21 @@ named!(
     )
 );
 
-named!(pub little_endian( &str ) -> ByteOrder, map!(char!('1'), |_| ByteOrder::LittleEndian));
+named!(pub little_endian<&str, ByteOrder, VerboseError<&str>>, map!(char!('1'), |_| ByteOrder::LittleEndian));
 
-named!(pub big_endian( &str ) -> ByteOrder, map!(char!('0'), |_| ByteOrder::BigEndian));
+named!(pub big_endian<&str, ByteOrder, VerboseError<&str>>, map!(char!('0'), |_| ByteOrder::BigEndian));
 
-named!(pub byte_order( &str ) -> ByteOrder, alt!(little_endian | big_endian));
+named!(pub byte_order<&str, ByteOrder, VerboseError<&str>>, alt!(little_endian | big_endian));
 
-named!(pub message_id( &str ) -> MessageId, map!(u32_s, MessageId));
+named!(pub message_id<&str, MessageId, VerboseError<&str>>, map!(u32_s, MessageId));
 
-named!(pub signed( &str ) -> ValueType, map!(char!('-'), |_| ValueType::Signed));
+named!(pub signed<&str, ValueType, VerboseError<&str>>, map!(char!('-'), |_| ValueType::Signed));
 
-named!(pub unsigned( &str ) -> ValueType, map!(char!('+'), |_| ValueType::Unsigned));
+named!(pub unsigned<&str, ValueType, VerboseError<&str>>, map!(char!('+'), |_| ValueType::Unsigned));
 
-named!(pub value_type( &str ) -> ValueType, alt!(signed | unsigned));
+named!(pub value_type<&str, ValueType, VerboseError<&str>>, alt!(signed | unsigned));
 
-named!(pub multiplexer( &str ) -> MultiplexIndicator,
+named!(pub multiplexer<&str, MultiplexIndicator, VerboseError<&str>>,
     do_parse!(
            ms         >>
            char!('m') >>
@@ -624,7 +624,7 @@ named!(pub multiplexer( &str ) -> MultiplexIndicator,
     )
 );
 
-named!(pub multiplexor( &str ) -> MultiplexIndicator,
+named!(pub multiplexor<&str, MultiplexIndicator, VerboseError<&str>>,
     do_parse!(
         ms         >>
         char!('M') >>
@@ -633,14 +633,14 @@ named!(pub multiplexor( &str ) -> MultiplexIndicator,
     )
 );
 
-named!(pub plain( &str ) -> MultiplexIndicator,
+named!(pub plain<&str, MultiplexIndicator, VerboseError<&str>>,
     do_parse!(
         ms >>
         (MultiplexIndicator::Plain)
     )
 );
 
-named!(pub version( &str ) -> Version,
+named!(pub version<&str, Version, VerboseError<&str>>,
     do_parse!(
            multispace0 >>
            tag!("VERSION")         >>
@@ -651,7 +651,7 @@ named!(pub version( &str ) -> Version,
     )
 );
 
-named!(pub bit_timing( &str ) -> Vec<Baudrate>,
+named!(pub bit_timing<&str, Vec<Baudrate>, VerboseError<&str>>,
     do_parse!(
                    multispace0                                                                  >>
                    tag!("BS_:")                                                                 >>
@@ -660,14 +660,14 @@ named!(pub bit_timing( &str ) -> Vec<Baudrate>,
     )
 );
 
-named!(pub multiplexer_indicator( &str ) -> MultiplexIndicator,
+named!(pub multiplexer_indicator<&str, MultiplexIndicator, VerboseError<&str>>,
     do_parse!(
         x: alt!(multiplexer | multiplexor | plain) >>
         (x)
     )
 );
 
-named!(pub signal( &str ) -> Signal,
+named!(pub signal<&str, Signal, VerboseError<&str>>,
     do_parse!(                multispace0           >>
                               tag!("SG_")           >>
                               ms                    >>
@@ -715,7 +715,7 @@ named!(pub signal( &str ) -> Signal,
     )
 );
 
-named!(pub message( &str ) -> Message,
+named!(pub message<&str, Message, VerboseError<&str>>,
   do_parse!(
                   multispace0    >>
                   tag!("BO_")    >>
@@ -739,7 +739,7 @@ named!(pub message( &str ) -> Message,
   )
 );
 
-named!(pub attribute_default( &str ) -> AttributeDefault,
+named!(pub attribute_default<&str, AttributeDefault, VerboseError<&str>>,
     do_parse!(
                         multispace0          >>
                          tag!("BA_DEF_DEF_") >>
@@ -753,7 +753,7 @@ named!(pub attribute_default( &str ) -> AttributeDefault,
     )
 );
 
-named!(pub node_comment( &str ) -> Comment,
+named!(pub node_comment<&str, Comment, VerboseError<&str>>,
     do_parse!(
                    tag!("BU_") >>
                    ms          >>
@@ -764,7 +764,7 @@ named!(pub node_comment( &str ) -> Comment,
     )
 );
 
-named!(pub message_comment( &str ) -> Comment,
+named!(pub message_comment<&str, Comment, VerboseError<&str>>,
     do_parse!(
                     tag!("BO_") >>
                     ms          >>
@@ -775,7 +775,7 @@ named!(pub message_comment( &str ) -> Comment,
     )
 );
 
-named!(pub signal_comment( &str ) -> Comment,
+named!(pub signal_comment<&str, Comment, VerboseError<&str>>,
     do_parse!(
                      tag!("SG_") >>
                      ms          >>
@@ -788,7 +788,7 @@ named!(pub signal_comment( &str ) -> Comment,
     )
 );
 
-named!(pub env_var_comment( &str ) -> Comment,
+named!(pub env_var_comment<&str, Comment, VerboseError<&str>>,
     do_parse!(
                       tag!("EV_") >>
                       ms          >>
@@ -799,14 +799,14 @@ named!(pub env_var_comment( &str ) -> Comment,
     )
 );
 
-named!(pub comment_plain( &str ) -> Comment,
+named!(pub comment_plain<&str, Comment, VerboseError<&str>>,
     do_parse!(
         comment: char_string >>
         (Comment::Plain { comment })
     )
 );
 
-named!(pub comment( &str ) -> Comment,
+named!(pub comment<&str, Comment, VerboseError<&str>>,
     do_parse!(
            multispace0                        >>
            tag!("CM_")                        >>
@@ -823,7 +823,7 @@ named!(pub comment( &str ) -> Comment,
     )
 );
 
-named!(pub value_description( &str ) -> ValDescription,
+named!(pub value_description<&str, ValDescription, VerboseError<&str>>,
     do_parse!(
         a: double      >>
            ms          >>
@@ -832,7 +832,7 @@ named!(pub value_description( &str ) -> ValDescription,
     )
 );
 
-named!(pub value_description_for_signal( &str ) -> ValueDescription,
+named!(pub value_description_for_signal<&str, ValueDescription, VerboseError<&str>>,
     do_parse!(
                      tag!("VAL_")  >>
                      ms            >>
@@ -848,7 +848,7 @@ named!(pub value_description_for_signal( &str ) -> ValueDescription,
     )
 );
 
-named!(pub value_description_for_env_var( &str ) -> ValueDescription,
+named!(pub value_description_for_env_var<&str, ValueDescription, VerboseError<&str>>,
     do_parse!(
                       tag!("VAL_")                                                                        >>
                       ms                                                                                  >>
@@ -861,7 +861,7 @@ named!(pub value_description_for_env_var( &str ) -> ValueDescription,
     )
 );
 
-named!(pub value_descriptions( &str ) -> ValueDescription,
+named!(pub value_descriptions<&str, ValueDescription, VerboseError<&str>>,
     do_parse!(
         multispace0 >>
         x: alt!(value_description_for_signal | value_description_for_env_var) >>
@@ -871,34 +871,34 @@ named!(pub value_descriptions( &str ) -> ValueDescription,
 );
 
 named!(
-    env_float( &str ) -> EnvType,
+    env_float<&str, EnvType, VerboseError<&str>>,
     value!(EnvType::EnvTypeFloat, char!('0'))
 );
-named!(env_int( &str ) -> EnvType, value!(EnvType::EnvTypeu64, char!('1')));
-named!(env_data( &str ) -> EnvType, value!(EnvType::EnvTypeData, char!('2')));
+named!(env_int<&str, EnvType, VerboseError<&str>>, value!(EnvType::EnvTypeu64, char!('1')));
+named!(env_data<&str, EnvType, VerboseError<&str>>, value!(EnvType::EnvTypeData, char!('2')));
 
 // 9 Environment Variable Definitions
-named!(pub env_var_type( &str ) -> EnvType, alt!(env_float | env_int | env_data));
+named!(pub env_var_type<&str, EnvType, VerboseError<&str>>, alt!(env_float | env_int | env_data));
 
 named!(
-    dummy_node_vector_0( &str ) -> AccessType,
+    dummy_node_vector_0<&str, AccessType, VerboseError<&str>>,
     value!(AccessType::DummyNodeVector0, char!('0'))
 );
 named!(
-    dummy_node_vector_1( &str ) -> AccessType,
+    dummy_node_vector_1<&str, AccessType, VerboseError<&str>>,
     value!(AccessType::DummyNodeVector1, char!('1'))
 );
 named!(
-    dummy_node_vector_2( &str ) -> AccessType,
+    dummy_node_vector_2<&str, AccessType, VerboseError<&str>>,
     value!(AccessType::DummyNodeVector2, char!('2'))
 );
 named!(
-    dummy_node_vector_3( &str ) -> AccessType,
+    dummy_node_vector_3<&str, AccessType, VerboseError<&str>>,
     value!(AccessType::DummyNodeVector3, char!('3'))
 );
 
 // 9 Environment Variable Definitions
-named!(pub access_type( &str ) -> AccessType,
+named!(pub access_type<&str, AccessType, VerboseError<&str>>,
     do_parse!(
               tag!("DUMMY_NODE_VECTOR") >>
         node: alt!(dummy_node_vector_0 | dummy_node_vector_1 | dummy_node_vector_2 | dummy_node_vector_3) >>
@@ -907,19 +907,19 @@ named!(pub access_type( &str ) -> AccessType,
 );
 
 named!(
-    access_node_vector_xxx( &str ) -> AccessNode,
+    access_node_vector_xxx<&str, AccessNode, VerboseError<&str>>,
     value!(AccessNode::AccessNodeVectorXXX, tag!("VECTOR_XXX"))
 );
 named!(
-    access_node_name( &str ) -> AccessNode,
+    access_node_name<&str, AccessNode, VerboseError<&str>>,
     map!(c_ident, |name| AccessNode::AccessNodeName(name))
 );
 
 // 9 Environment Variable Definitions
-named!(pub access_node( &str ) -> AccessNode, alt!(access_node_vector_xxx | access_node_name));
+named!(pub access_node<&str, AccessNode, VerboseError<&str>>, alt!(access_node_vector_xxx | access_node_name));
 
 // 9 Environment Variable Definitions
-named!(pub environment_variable( &str ) -> EnvironmentVariable,
+named!(pub environment_variable<&str, EnvironmentVariable, VerboseError<&str>>,
     do_parse!(
                        multispace0                                  >>
                        tag!("EV_")                                  >>
@@ -960,7 +960,7 @@ named!(pub environment_variable( &str ) -> EnvironmentVariable,
     )
 );
 
-named!(pub environment_variable_data( &str ) -> EnvironmentVariableData,
+named!(pub environment_variable_data<&str, EnvironmentVariableData, VerboseError<&str>>,
     do_parse!(
                       multispace0          >>
                       tag!("ENVVAR_DATA_") >>
@@ -975,7 +975,7 @@ named!(pub environment_variable_data( &str ) -> EnvironmentVariableData,
     )
 );
 
-named!(pub signal_type( &str ) -> SignalType,
+named!(pub signal_type<&str, SignalType, VerboseError<&str>>,
     do_parse!(
         multispace0                   >>
         tag!("SGTYPE_")               >>
@@ -1023,23 +1023,23 @@ named!(pub signal_type( &str ) -> SignalType,
     )
 );
 
-named!(pub attribute_value_uint64( &str ) -> AttributeValue,
+named!(pub attribute_value_uint64<&str, AttributeValue, VerboseError<&str>>,
     map!(u64_s, AttributeValue::AttributeValueU64)
 );
 
-named!(pub attribute_value_int64( &str ) -> AttributeValue,
+named!(pub attribute_value_int64<&str, AttributeValue, VerboseError<&str>>,
     map!(i64_digit1, AttributeValue::AttributeValueI64)
 );
 
-named!(pub attribute_value_f64( &str ) -> AttributeValue,
+named!(pub attribute_value_f64<&str, AttributeValue, VerboseError<&str>>,
     map!(double, AttributeValue::AttributeValueF64)
 );
 
-named!(pub attribute_value_charstr( &str ) -> AttributeValue,
+named!(pub attribute_value_charstr<&str, AttributeValue, VerboseError<&str>>,
     map!(char_string, |x| AttributeValue::AttributeValueCharString(x))
 );
 
-named!(pub attribute_value( &str ) -> AttributeValue,
+named!(pub attribute_value<&str, AttributeValue, VerboseError<&str>>,
     alt!(
         //attribute_value_uint64 |
        // attribute_value_int64  |
@@ -1048,7 +1048,7 @@ named!(pub attribute_value( &str ) -> AttributeValue,
     )
 );
 
-named!(pub network_node_attribute_value( &str ) -> AttributeValuedForObjectType,
+named!(pub network_node_attribute_value<&str, AttributeValuedForObjectType, VerboseError<&str>>,
     do_parse!(
                    tag!("BU_")     >>
                    ms              >>
@@ -1059,7 +1059,7 @@ named!(pub network_node_attribute_value( &str ) -> AttributeValuedForObjectType,
     )
 );
 
-named!(pub message_definition_attribute_value( &str ) -> AttributeValuedForObjectType,
+named!(pub message_definition_attribute_value<&str, AttributeValuedForObjectType, VerboseError<&str>>,
     do_parse!(
                     tag!("BO_")           >>
                     ms                    >>
@@ -1070,7 +1070,7 @@ named!(pub message_definition_attribute_value( &str ) -> AttributeValuedForObjec
     )
 );
 
-named!(pub signal_attribute_value( &str ) -> AttributeValuedForObjectType,
+named!(pub signal_attribute_value<&str, AttributeValuedForObjectType, VerboseError<&str>>,
     do_parse!(
                      tag!("SG_")     >>
                      ms              >>
@@ -1083,7 +1083,7 @@ named!(pub signal_attribute_value( &str ) -> AttributeValuedForObjectType,
     )
 );
 
-named!(pub env_variable_attribute_value( &str ) -> AttributeValuedForObjectType,
+named!(pub env_variable_attribute_value<&str, AttributeValuedForObjectType, VerboseError<&str>>,
     do_parse!(
                       tag!("EV_")     >>
                       ms              >>
@@ -1094,11 +1094,11 @@ named!(pub env_variable_attribute_value( &str ) -> AttributeValuedForObjectType,
     )
 );
 
-named!(pub raw_attribute_value( &str ) -> AttributeValuedForObjectType,
+named!(pub raw_attribute_value<&str, AttributeValuedForObjectType, VerboseError<&str>>,
     map!(attribute_value, AttributeValuedForObjectType::RawAttributeValue)
 );
 
-named!(pub attribute_value_for_object( &str ) -> AttributeValueForObject,
+named!(pub attribute_value_for_object<&str, AttributeValueForObject, VerboseError<&str>>,
     do_parse!(
                          multispace0 >>
                          tag!("BA_") >>
@@ -1120,7 +1120,7 @@ named!(pub attribute_value_for_object( &str ) -> AttributeValueForObject,
 );
 
 // TODO add properties
-named!(pub attribute_definition_node( &str ) -> AttributeDefinition,
+named!(pub attribute_definition_node<&str, AttributeDefinition, VerboseError<&str>>,
     do_parse!(
            tag!("BU_") >>
            ms          >>
@@ -1130,7 +1130,7 @@ named!(pub attribute_definition_node( &str ) -> AttributeDefinition,
 );
 
 // TODO add properties
-named!(pub attribute_definition_signal( &str ) -> AttributeDefinition,
+named!(pub attribute_definition_signal<&str, AttributeDefinition, VerboseError<&str>>,
     do_parse!(
            tag!("SG_") >>
            ms          >>
@@ -1140,7 +1140,7 @@ named!(pub attribute_definition_signal( &str ) -> AttributeDefinition,
 );
 
 // TODO add properties
-named!(pub attribute_definition_environment_variable( &str ) -> AttributeDefinition,
+named!(pub attribute_definition_environment_variable<&str, AttributeDefinition, VerboseError<&str>>,
     do_parse!(
            tag!("EV_") >>
            ms          >>
@@ -1150,7 +1150,7 @@ named!(pub attribute_definition_environment_variable( &str ) -> AttributeDefinit
 );
 
 // TODO add properties
-named!(pub attribute_definition_message( &str ) -> AttributeDefinition,
+named!(pub attribute_definition_message<&str, AttributeDefinition, VerboseError<&str>>,
     do_parse!(
            tag!("BO_") >>
            ms          >>
@@ -1160,14 +1160,14 @@ named!(pub attribute_definition_message( &str ) -> AttributeDefinition,
 );
 
 // TODO add properties
-named!(pub attribute_definition_plain( &str ) -> AttributeDefinition,
+named!(pub attribute_definition_plain<&str, AttributeDefinition, VerboseError<&str>>,
     do_parse!(
         x: map!(take_till!(|c |is_semi_colon(c as char)), |x| String::from_utf8(x.as_bytes().to_vec()).unwrap()) >>
         (AttributeDefinition::Plain(x))
     )
 );
 
-named!(pub attribute_definition( &str ) -> AttributeDefinition,
+named!(pub attribute_definition<&str, AttributeDefinition, VerboseError<&str>>,
     do_parse!(
         multispace0     >>
         tag!("BA_DEF_") >>
@@ -1184,7 +1184,7 @@ named!(pub attribute_definition( &str ) -> AttributeDefinition,
     )
 );
 
-named!(pub symbol( &str ) -> Symbol,
+named!(pub symbol<&str, Symbol, VerboseError<&str>>,
     do_parse!(
                 space1   >>
         symbol: c_ident >>
@@ -1193,7 +1193,7 @@ named!(pub symbol( &str ) -> Symbol,
     )
 );
 
-named!(pub new_symbols( &str ) -> Vec<Symbol>,
+named!(pub new_symbols<&str, Vec<Symbol>, VerboseError<&str>>,
     do_parse!(
                  multispace0    >>
                  tag!("NS_ :")  >>
@@ -1207,7 +1207,7 @@ named!(pub new_symbols( &str ) -> Vec<Symbol>,
 //
 // Network node
 //
-named!(pub node( &str ) -> Node,
+named!(pub node<&str, Node, VerboseError<&str>>,
     do_parse!(
             multispace0                           >>
             tag!("BU_:")                          >>
@@ -1218,7 +1218,7 @@ named!(pub node( &str ) -> Node,
     )
 );
 
-named!(pub signal_type_ref( &str ) -> SignalTypeRef,
+named!(pub signal_type_ref<&str, SignalTypeRef, VerboseError<&str>>,
     do_parse!(
                           multispace0     >>
                           tag!("SGTYPE_") >>
@@ -1240,7 +1240,7 @@ named!(pub signal_type_ref( &str ) -> SignalTypeRef,
     )
 );
 
-named!(pub value_table( &str ) -> ValueTable,
+named!(pub value_table<&str, ValueTable, VerboseError<&str>>,
     do_parse!(
                             multispace0 >>
                             tag!("VAL_TABLE_")      >>
@@ -1255,11 +1255,11 @@ named!(pub value_table( &str ) -> ValueTable,
     )
 );
 
-named!(pub signed_or_unsigned_integer( &str ) -> SignalExtendedValueType, value!(SignalExtendedValueType::SignedOrUnsignedInteger, tag!("0")));
-named!(pub ieee_float_32bit( &str ) -> SignalExtendedValueType, value!(SignalExtendedValueType::IEEEfloat32Bit, tag!("1")));
-named!(pub ieee_double_64bit( &str ) -> SignalExtendedValueType, value!(SignalExtendedValueType::IEEEdouble64bit, tag!("2")));
+named!(pub signed_or_unsigned_integer<&str, SignalExtendedValueType, VerboseError<&str>>, value!(SignalExtendedValueType::SignedOrUnsignedInteger, tag!("0")));
+named!(pub ieee_float_32bit<&str, SignalExtendedValueType, VerboseError<&str>>, value!(SignalExtendedValueType::IEEEfloat32Bit, tag!("1")));
+named!(pub ieee_double_64bit<&str, SignalExtendedValueType, VerboseError<&str>>, value!(SignalExtendedValueType::IEEEdouble64bit, tag!("2")));
 
-named!(pub signal_extended_value_type( &str ) -> SignalExtendedValueType,
+named!(pub signal_extended_value_type<&str, SignalExtendedValueType, VerboseError<&str>>,
     alt!(
         signed_or_unsigned_integer |
         ieee_float_32bit           |
@@ -1267,7 +1267,7 @@ named!(pub signal_extended_value_type( &str ) -> SignalExtendedValueType,
     )
 );
 
-named!(pub signal_extended_value_type_list( &str ) -> SignalExtendedValueTypeList,
+named!(pub signal_extended_value_type_list<&str, SignalExtendedValueTypeList, VerboseError<&str>>,
     do_parse!(
         multispace0 >>
         tag!("SIG_VALTYPE_")                                   >>
@@ -1289,15 +1289,15 @@ named!(pub signal_extended_value_type_list( &str ) -> SignalExtendedValueTypeLis
     )
 );
 
-named!(pub transmitter_vector_xxx( &str ) -> Transmitter, value!(Transmitter::VectorXXX, tag!("Vector__XXX")));
+named!(pub transmitter_vector_xxx<&str, Transmitter, VerboseError<&str>>, value!(Transmitter::VectorXXX, tag!("Vector__XXX")));
 
-named!(pub transmitter_node_name( &str ) -> Transmitter, map!(c_ident, |x| Transmitter::NodeName(x)));
+named!(pub transmitter_node_name<&str, Transmitter, VerboseError<&str>>, map!(c_ident, |x| Transmitter::NodeName(x)));
 
-named!(pub transmitter( &str ) -> Transmitter, alt!(transmitter_vector_xxx | transmitter_node_name));
+named!(pub transmitter<&str, Transmitter, VerboseError<&str>>, alt!(transmitter_vector_xxx | transmitter_node_name));
 
-named!(pub message_transmitters( &str ) -> Vec<Transmitter>, separated_list0!(comma, transmitter));
+named!(pub message_transmitters<&str, Vec<Transmitter>, VerboseError<&str>>, separated_list0!(comma, transmitter));
 
-named!(pub message_transmitter( &str ) -> MessageTransmitter,
+named!(pub message_transmitter<&str, MessageTransmitter, VerboseError<&str>>,
     do_parse!(
                     multispace0 >>
                      tag!("BO_TX_BU_")      >>
@@ -1316,7 +1316,7 @@ named!(pub message_transmitter( &str ) -> MessageTransmitter,
     )
 );
 
-named!(pub signal_groups( &str ) -> SignalGroups,
+named!(pub signal_groups<&str, SignalGroups, VerboseError<&str>>,
     do_parse!(
         multispace0                                          >>
         tag!("SIG_GROUP_")                                   >>
@@ -1341,7 +1341,7 @@ named!(pub signal_groups( &str ) -> SignalGroups,
     )
 );
 
-named!(pub dbc ( &str ) -> DBC,
+named!(pub dbc<&str, DBC, VerboseError<&str>>,
     do_parse!(
         version:                         version                                 >>
         new_symbols:                     new_symbols                             >>
