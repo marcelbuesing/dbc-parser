@@ -372,7 +372,7 @@ mod tests {
             message_id: MessageId(23),
             signal_group_name: "X_3290".to_string(),
             repetitions: 1,
-            signal_names: vec!["A_".to_string(), "XY_Z".to_string()],
+            signal_names: vec!["A_b".to_string(), "XY_Z".to_string()],
         };
 
         let (_, signal_groups) = signal_groups(def).unwrap();
