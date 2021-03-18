@@ -633,7 +633,6 @@ named!(pub plain<&str, MultiplexIndicator, VerboseError<&str>>,
 
 named!(pub version<&str, Version, VerboseError<&str>>,
     do_parse!(
-           multispace0 >>
            tag!("VERSION")         >>
            ms                      >>
         v: char_string             >>
@@ -1086,7 +1085,7 @@ named!(pub attribute_value_for_object<&str, AttributeValueForObject, VerboseErro
                          tag!("BA_") >>
                          ms          >>
         attribute_name:  char_string >>
-               ms          >>
+                         ms          >>
         attribute_value: alt!(
                               network_node_attribute_value       |
                               message_definition_attribute_value |
@@ -1176,7 +1175,6 @@ named!(pub symbol<&str, Symbol, VerboseError<&str>>,
 
 named!(pub new_symbols<&str, Vec<Symbol>, VerboseError<&str>>,
     do_parse!(
-                 multispace0    >>
                  tag!("NS_ :")  >>
                  space0         >>
                  line_ending    >>
@@ -1318,25 +1316,25 @@ named!(pub signal_groups<&str, SignalGroups, VerboseError<&str>>,
 
 named!(pub dbc<&str, DBC, VerboseError<&str>>,
     do_parse!(
-        version:                         version                                 >>
-        new_symbols:                     new_symbols                             >>
-        bit_timing:                      opt!(bit_timing)                        >>
-        nodes:                           many0!(node)                            >>
-        value_tables:                    many0!(value_table)                     >>
-        messages:                        many0!(message)                         >>
-        message_transmitters:            many0!(message_transmitter)             >>
-        environment_variables:           many0!(environment_variable)            >>
-        environment_variable_data:       many0!(environment_variable_data)       >>
-        signal_types:                    many0!(signal_type)                     >>
-        comments:                        many0!(comment)                         >>
-        attribute_definitions:           many0!(attribute_definition)            >>
-        attribute_defaults:              many0!(attribute_default)               >>
-        attribute_values:                many0!(attribute_value_for_object)      >>
-        value_descriptions:              many0!(value_descriptions)              >>
-        signal_type_refs:                many0!(signal_type_ref)                 >>
-        signal_groups:                   many0!(signal_groups)                   >>
-        signal_extended_value_type_list: many0!(signal_extended_value_type_list) >>
-        multispace0                                                              >>
+        multispace0 >>
+        version:                         version                                 >> multispace0 >>
+        new_symbols:                     new_symbols                             >> multispace0 >>
+        bit_timing:                      opt!(bit_timing)                        >> multispace0 >>
+        nodes:                           many0!(node)                            >> multispace0 >>
+        value_tables:                    many0!(value_table)                     >> multispace0 >>
+        messages:                        many0!(message)                         >> multispace0 >>
+        message_transmitters:            many0!(message_transmitter)             >> multispace0 >>
+        environment_variables:           many0!(environment_variable)            >> multispace0 >>
+        environment_variable_data:       many0!(environment_variable_data)       >> multispace0 >>
+        signal_types:                    many0!(signal_type)                     >> multispace0 >>
+        comments:                        many0!(comment)                         >> multispace0 >>
+        attribute_definitions:           many0!(attribute_definition)            >> multispace0 >>
+        attribute_defaults:              many0!(attribute_default)               >> multispace0 >>
+        // attribute_values:                many0!(attribute_value_for_object)      >> multispace0 >>
+        // value_descriptions:              many0!(value_descriptions)              >> multispace0 >>
+        // signal_type_refs:                many0!(signal_type_ref)                 >> multispace0 >>
+        // signal_groups:                   many0!(signal_groups)                   >> multispace0 >>
+        // signal_extended_value_type_list: many0!(signal_extended_value_type_list) >> multispace0 >>
         (DBC {
             version,
             new_symbols,
@@ -1351,11 +1349,13 @@ named!(pub dbc<&str, DBC, VerboseError<&str>>,
             comments,
             attribute_definitions,
             attribute_defaults,
-            attribute_values,
-            value_descriptions,
-            signal_type_refs,
-            signal_groups,
-            signal_extended_value_type_list,
+            
+            FIX HERE
+            attribute_values: Vec::new(),
+            value_descriptions: Vec::new(),
+            signal_type_refs: Vec::new(),
+            signal_groups: Vec::new(),
+            signal_extended_value_type_list: Vec::new(),
         })
     )
 );
