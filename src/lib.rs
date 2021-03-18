@@ -42,7 +42,7 @@ extern crate serde;
 extern crate serde_derive;
 
 use derive_getters::Getters;
-use nom::error::VerboseError;
+pub use nom::error::{convert_error, VerboseError};
 
 pub mod parser;
 
@@ -628,6 +628,10 @@ impl DBC {
     /// Read a DBC from a buffer
     pub fn from_slice(buffer: &[u8]) -> Result<DBC, Error> {
         let dbc_in = std::str::from_utf8(buffer).unwrap();
+        Self::from_str(dbc_in)
+    }
+
+    pub fn from_str(dbc_in: &str) -> Result<DBC, Error> {
         let (remaining, dbc) = parser::dbc(dbc_in).map_err(Error::Nom)?;
         if !remaining.is_empty() {
             return Err(Error::Incomplete(dbc, remaining.as_bytes().to_vec()));
