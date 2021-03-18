@@ -4,16 +4,7 @@
 
 use std::str;
 
-use nom::{
-    alt, char,
-    character::complete::{digit1, line_ending, multispace0, space0, space1},
-    do_parse,
-    error::VerboseError,
-    flat_map, many0, many1, many_till, map, map_res, named,
-    number::complete::double,
-    opt, parse_to, preceded, recognize, separated_list0, tag, take_till, take_while, take_while1,
-    tuple, value,
-};
+use nom::{alt, char, character::complete::{digit1, line_ending, multispace0, space0, space1}, do_parse, error::VerboseError, flat_map, many0, many1, many_till, map, map_res, named, number::complete::double, opt, parse_to, preceded, recognize, separated_list0, separated_list1, tag, take_till, take_while, take_while1, tuple, value};
 
 use crate::{
     AccessNode, AccessType, AttributeDefault, AttributeDefinition, AttributeValue,
@@ -562,9 +553,9 @@ named!(
     c_ident <&str, String, VerboseError<&str>>,
     map!(
         recognize!(do_parse!(
-            take_while1!(|x| is_c_ident_head(x))
-                >> take_while!(|x| is_c_string_char(x))
-                >> ()
+            take_while1!(|x| is_c_ident_head(x)) >>
+            take_while!(|x| is_c_string_char(x)) >> 
+            ()
         )),
         |x: &str| x.to_string()
     )
@@ -653,7 +644,6 @@ named!(pub version<&str, Version, VerboseError<&str>>,
 
 named!(pub bit_timing<&str, Vec<Baudrate>, VerboseError<&str>>,
     do_parse!(
-                   multispace0                                                                  >>
                    tag!("BS_:")                                                                 >>
         baudrates: opt!(preceded!(ms,  separated_list0!(comma, map!(u64_s, Baudrate)))) >>
         (baudrates.unwrap_or_default())
@@ -717,7 +707,6 @@ named!(pub signal<&str, Signal, VerboseError<&str>>,
 
 named!(pub message<&str, Message, VerboseError<&str>>,
   do_parse!(
-                  multispace0    >>
                   tag!("BO_")    >>
                   ms             >>
     message_id:   message_id     >>
@@ -741,7 +730,6 @@ named!(pub message<&str, Message, VerboseError<&str>>,
 
 named!(pub attribute_default<&str, AttributeDefault, VerboseError<&str>>,
     do_parse!(
-                        multispace0          >>
                          tag!("BA_DEF_DEF_") >>
                          ms                  >>
         attribute_name:  char_string         >>
@@ -808,7 +796,6 @@ named!(pub comment_plain<&str, Comment, VerboseError<&str>>,
 
 named!(pub comment<&str, Comment, VerboseError<&str>>,
     do_parse!(
-           multispace0                        >>
            tag!("CM_")                        >>
            ms                                 >>
         c: alt!( node_comment
@@ -818,7 +805,7 @@ named!(pub comment<&str, Comment, VerboseError<&str>>,
                | comment_plain
                )                              >>
            semi_colon                         >>
-           line_ending                                >>
+           line_ending                        >>
         (c)
     )
 );
@@ -863,7 +850,6 @@ named!(pub value_description_for_env_var<&str, ValueDescription, VerboseError<&s
 
 named!(pub value_descriptions<&str, ValueDescription, VerboseError<&str>>,
     do_parse!(
-        multispace0 >>
         x: alt!(value_description_for_signal | value_description_for_env_var) >>
         line_ending >>
         (x)
@@ -921,7 +907,6 @@ named!(pub access_node<&str, AccessNode, VerboseError<&str>>, alt!(access_node_v
 // 9 Environment Variable Definitions
 named!(pub environment_variable<&str, EnvironmentVariable, VerboseError<&str>>,
     do_parse!(
-                       multispace0                                  >>
                        tag!("EV_")                                  >>
                        ms                                           >>
         env_var_name:  c_ident                                      >>
@@ -930,22 +915,22 @@ named!(pub environment_variable<&str, EnvironmentVariable, VerboseError<&str>>,
         env_var_type:  env_var_type                                 >>
                        ms                                           >>
                        brk_open                                     >>
-        min:           i64_digit1                                    >>
+        min:           i64_digit1                                   >>
                        pipe                                         >>
-        max:           i64_digit1                                    >>
+        max:           i64_digit1                                   >>
                        brk_close                                    >>
                        ms                                           >>
         unit:          char_string                                  >>
                        ms                                           >>
         initial_value: double                                       >>
                        ms                                           >>
-        ev_id:         i64_digit1                                    >>
+        ev_id:         i64_digit1                                   >>
                        ms                                           >>
         access_type:   access_type                                  >>
                        ms                                           >>
-        access_nodes:  separated_list0!(comma, access_node) >>
+        access_nodes:  separated_list0!(comma, access_node)         >>
                        semi_colon                                   >>
-                       line_ending                                          >>
+                       line_ending                                  >>
        (EnvironmentVariable {
            env_var_name,
            env_var_type,
@@ -962,7 +947,6 @@ named!(pub environment_variable<&str, EnvironmentVariable, VerboseError<&str>>,
 
 named!(pub environment_variable_data<&str, EnvironmentVariableData, VerboseError<&str>>,
     do_parse!(
-                      multispace0          >>
                       tag!("ENVVAR_DATA_") >>
                       ms                   >>
         env_var_name: c_ident              >>
@@ -970,14 +954,13 @@ named!(pub environment_variable_data<&str, EnvironmentVariableData, VerboseError
                       ms                   >>
         data_size:    u64_s                >>
                       semi_colon           >>
-                      line_ending                  >>
+                      line_ending          >>
         (EnvironmentVariableData { env_var_name, data_size })
     )
 );
 
 named!(pub signal_type<&str, SignalType, VerboseError<&str>>,
     do_parse!(
-        multispace0                   >>
         tag!("SGTYPE_")               >>
                           ms          >>
         signal_type_name: c_ident     >>
@@ -1006,7 +989,7 @@ named!(pub signal_type<&str, SignalType, VerboseError<&str>>,
                           ms          >>
         value_table:      c_ident     >>
                           semi_colon  >>
-                          line_ending         >>
+                          line_ending >>
         (SignalType {
             signal_type_name,
             signal_size,
@@ -1100,7 +1083,6 @@ named!(pub raw_attribute_value<&str, AttributeValuedForObjectType, VerboseError<
 
 named!(pub attribute_value_for_object<&str, AttributeValueForObject, VerboseError<&str>>,
     do_parse!(
-                         multispace0 >>
                          tag!("BA_") >>
                          ms          >>
         attribute_name:  char_string >>
@@ -1114,7 +1096,7 @@ named!(pub attribute_value_for_object<&str, AttributeValueForObject, VerboseErro
 
                           )           >>
                           semi_colon  >>
-                          line_ending         >>
+                          line_ending >>
         (AttributeValueForObject{ attribute_name, attribute_value })
     )
 );
@@ -1169,7 +1151,6 @@ named!(pub attribute_definition_plain<&str, AttributeDefinition, VerboseError<&s
 
 named!(pub attribute_definition<&str, AttributeDefinition, VerboseError<&str>>,
     do_parse!(
-        multispace0     >>
         tag!("BA_DEF_") >>
         ms              >>
         def: alt!(attribute_definition_node                 |
@@ -1177,9 +1158,9 @@ named!(pub attribute_definition<&str, AttributeDefinition, VerboseError<&str>>,
                   attribute_definition_environment_variable |
                   attribute_definition_message              |
                   attribute_definition_plain
-                 ) >>
-        semi_colon >>
-        line_ending        >>
+                 )  >>
+        semi_colon  >>
+        line_ending >>
         (def)
     )
 );
@@ -1198,7 +1179,7 @@ named!(pub new_symbols<&str, Vec<Symbol>, VerboseError<&str>>,
                  multispace0    >>
                  tag!("NS_ :")  >>
                  space0         >>
-                 line_ending            >>
+                 line_ending    >>
         symbols: many0!(symbol) >>
         (symbols)
     )
@@ -1209,18 +1190,16 @@ named!(pub new_symbols<&str, Vec<Symbol>, VerboseError<&str>>,
 //
 named!(pub node<&str, Node, VerboseError<&str>>,
     do_parse!(
-            multispace0                           >>
             tag!("BU_:")                          >>
         li: opt!(preceded!(ms, separated_list0!(ms, c_ident))) >>
         space0                                    >>
-        line_ending                                       >>
+        line_ending                               >>
         (Node(li.unwrap_or_default()))
     )
 );
 
 named!(pub signal_type_ref<&str, SignalTypeRef, VerboseError<&str>>,
     do_parse!(
-                          multispace0     >>
                           tag!("SGTYPE_") >>
                           ms              >>
         message_id:       message_id      >>
@@ -1231,7 +1210,7 @@ named!(pub signal_type_ref<&str, SignalTypeRef, VerboseError<&str>>,
                           ms              >>
         signal_type_name: c_ident         >>
                           semi_colon      >>
-                          line_ending             >>
+                          line_ending     >>
         (SignalTypeRef {
             message_id,
             signal_name,
@@ -1242,7 +1221,6 @@ named!(pub signal_type_ref<&str, SignalTypeRef, VerboseError<&str>>,
 
 named!(pub value_table<&str, ValueTable, VerboseError<&str>>,
     do_parse!(
-                            multispace0 >>
                             tag!("VAL_TABLE_")      >>
                             ms                      >>
         value_table_name:   c_ident                 >>
@@ -1269,7 +1247,6 @@ named!(pub signal_extended_value_type<&str, SignalExtendedValueType, VerboseErro
 
 named!(pub signal_extended_value_type_list<&str, SignalExtendedValueTypeList, VerboseError<&str>>,
     do_parse!(
-        multispace0 >>
         tag!("SIG_VALTYPE_")                                   >>
         ms                                                     >>
         message_id: message_id                                 >>
@@ -1280,7 +1257,7 @@ named!(pub signal_extended_value_type_list<&str, SignalExtendedValueTypeList, Ve
         ms                                                     >>
         signal_extended_value_type: signal_extended_value_type >>
         semi_colon                                             >>
-        line_ending                                                    >>
+        line_ending                                            >>
         (SignalExtendedValueTypeList {
             message_id,
             signal_name,
@@ -1299,7 +1276,6 @@ named!(pub message_transmitters<&str, Vec<Transmitter>, VerboseError<&str>>, sep
 
 named!(pub message_transmitter<&str, MessageTransmitter, VerboseError<&str>>,
     do_parse!(
-                    multispace0 >>
                      tag!("BO_TX_BU_")      >>
                      ms                     >>
         message_id:  message_id             >>
@@ -1308,7 +1284,7 @@ named!(pub message_transmitter<&str, MessageTransmitter, VerboseError<&str>>,
                      ms                     >>
         transmitter: message_transmitters   >>
                      semi_colon             >>
-                     line_ending >>
+                     line_ending            >>
         (MessageTransmitter {
             message_id,
             transmitter,
@@ -1318,7 +1294,6 @@ named!(pub message_transmitter<&str, MessageTransmitter, VerboseError<&str>>,
 
 named!(pub signal_groups<&str, SignalGroups, VerboseError<&str>>,
     do_parse!(
-        multispace0                                          >>
         tag!("SIG_GROUP_")                                   >>
         ms                                                   >>
         message_id: message_id                               >>
@@ -1329,9 +1304,9 @@ named!(pub signal_groups<&str, SignalGroups, VerboseError<&str>>,
         ms                                                   >>
         colon                                                >>
         ms                                                   >>
-        signal_names: separated_list0!(ms, c_ident)           >>
+        signal_names: separated_list0!(ms, c_ident)          >>
         semi_colon                                           >>
-        line_ending                                                  >>
+        line_ending                                          >>
         (SignalGroups{
             message_id,
             signal_group_name,
