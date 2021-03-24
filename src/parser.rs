@@ -4,7 +4,16 @@
 
 use std::str;
 
-use nom::{alt, char, character::complete::{digit1, line_ending, multispace0, space0, space1}, do_parse, error::VerboseError, flat_map, many0, many1, many_till, map, map_res, named, number::complete::double, opt, parse_to, preceded, recognize, separated_list0, separated_list1, tag, take_till, take_while, take_while1, tuple, value};
+use nom::{
+    alt, char,
+    character::complete::{digit1, line_ending, multispace0, space0, space1},
+    do_parse, eof,
+    error::VerboseError,
+    flat_map, many0, many1, many_till, map, map_res, named, none_of,
+    number::complete::double,
+    opt, parse_to, permutation, preceded, recognize, separated_list0, separated_list1, tag,
+    take_till, take_while, take_while1, tuple, value,
+};
 
 use crate::{
     AccessNode, AccessType, AttributeDefault, AttributeDefinition, AttributeValue,
@@ -554,7 +563,7 @@ named!(
     map!(
         recognize!(do_parse!(
             take_while1!(|x| is_c_ident_head(x)) >>
-            take_while!(|x| is_c_string_char(x)) >> 
+            take_while!(|x| is_c_string_char(x)) >>
             ()
         )),
         |x: &str| x.to_string()
@@ -633,6 +642,7 @@ named!(pub plain<&str, MultiplexIndicator, VerboseError<&str>>,
 
 named!(pub version<&str, Version, VerboseError<&str>>,
     do_parse!(
+           multispace0             >>
            tag!("VERSION")         >>
            ms                      >>
         v: char_string             >>
@@ -643,6 +653,7 @@ named!(pub version<&str, Version, VerboseError<&str>>,
 
 named!(pub bit_timing<&str, Vec<Baudrate>, VerboseError<&str>>,
     do_parse!(
+        multispace0             >>
                    tag!("BS_:")                                                                 >>
         baudrates: opt!(preceded!(ms,  separated_list0!(comma, map!(u64_s, Baudrate)))) >>
         (baudrates.unwrap_or_default())
@@ -706,6 +717,7 @@ named!(pub signal<&str, Signal, VerboseError<&str>>,
 
 named!(pub message<&str, Message, VerboseError<&str>>,
   do_parse!(
+                  multispace0    >>
                   tag!("BO_")    >>
                   ms             >>
     message_id:   message_id     >>
@@ -729,13 +741,14 @@ named!(pub message<&str, Message, VerboseError<&str>>,
 
 named!(pub attribute_default<&str, AttributeDefault, VerboseError<&str>>,
     do_parse!(
+                         multispace0         >>
                          tag!("BA_DEF_DEF_") >>
                          ms                  >>
         attribute_name:  char_string         >>
                          ms                  >>
         attribute_value: attribute_value     >>
                          semi_colon          >>
-                         line_ending                 >>
+                         line_ending         >>
         (AttributeDefault { attribute_name, attribute_value })
     )
 );
@@ -777,6 +790,7 @@ named!(pub signal_comment<&str, Comment, VerboseError<&str>>,
 
 named!(pub env_var_comment<&str, Comment, VerboseError<&str>>,
     do_parse!(
+                      multispace0 >>
                       tag!("EV_") >>
                       ms          >>
         env_var_name: c_ident     >>
@@ -795,6 +809,7 @@ named!(pub comment_plain<&str, Comment, VerboseError<&str>>,
 
 named!(pub comment<&str, Comment, VerboseError<&str>>,
     do_parse!(
+           multispace0                        >>
            tag!("CM_")                        >>
            ms                                 >>
         c: alt!( node_comment
@@ -820,6 +835,7 @@ named!(pub value_description<&str, ValDescription, VerboseError<&str>>,
 
 named!(pub value_description_for_signal<&str, ValueDescription, VerboseError<&str>>,
     do_parse!(
+                     multispace0   >>
                      tag!("VAL_")  >>
                      ms            >>
         message_id:  message_id    >>
@@ -836,6 +852,7 @@ named!(pub value_description_for_signal<&str, ValueDescription, VerboseError<&st
 
 named!(pub value_description_for_env_var<&str, ValueDescription, VerboseError<&str>>,
     do_parse!(
+                      multispace0                                                                         >>
                       tag!("VAL_")                                                                        >>
                       ms                                                                                  >>
         env_var_name: c_ident                                                                             >>
@@ -849,6 +866,7 @@ named!(pub value_description_for_env_var<&str, ValueDescription, VerboseError<&s
 
 named!(pub value_descriptions<&str, ValueDescription, VerboseError<&str>>,
     do_parse!(
+        multispace0 >>
         x: alt!(value_description_for_signal | value_description_for_env_var) >>
         line_ending >>
         (x)
@@ -906,6 +924,7 @@ named!(pub access_node<&str, AccessNode, VerboseError<&str>>, alt!(access_node_v
 // 9 Environment Variable Definitions
 named!(pub environment_variable<&str, EnvironmentVariable, VerboseError<&str>>,
     do_parse!(
+                       multispace0                                  >>
                        tag!("EV_")                                  >>
                        ms                                           >>
         env_var_name:  c_ident                                      >>
@@ -946,6 +965,7 @@ named!(pub environment_variable<&str, EnvironmentVariable, VerboseError<&str>>,
 
 named!(pub environment_variable_data<&str, EnvironmentVariableData, VerboseError<&str>>,
     do_parse!(
+                      multispace0          >>
                       tag!("ENVVAR_DATA_") >>
                       ms                   >>
         env_var_name: c_ident              >>
@@ -960,6 +980,7 @@ named!(pub environment_variable_data<&str, EnvironmentVariableData, VerboseError
 
 named!(pub signal_type<&str, SignalType, VerboseError<&str>>,
     do_parse!(
+        multispace0          >>
         tag!("SGTYPE_")               >>
                           ms          >>
         signal_type_name: c_ident     >>
@@ -1082,6 +1103,7 @@ named!(pub raw_attribute_value<&str, AttributeValuedForObjectType, VerboseError<
 
 named!(pub attribute_value_for_object<&str, AttributeValueForObject, VerboseError<&str>>,
     do_parse!(
+                         multispace0 >>
                          tag!("BA_") >>
                          ms          >>
         attribute_name:  char_string >>
@@ -1150,6 +1172,7 @@ named!(pub attribute_definition_plain<&str, AttributeDefinition, VerboseError<&s
 
 named!(pub attribute_definition<&str, AttributeDefinition, VerboseError<&str>>,
     do_parse!(
+        multispace0     >>
         tag!("BA_DEF_") >>
         ms              >>
         def: alt!(attribute_definition_node                 |
@@ -1175,6 +1198,7 @@ named!(pub symbol<&str, Symbol, VerboseError<&str>>,
 
 named!(pub new_symbols<&str, Vec<Symbol>, VerboseError<&str>>,
     do_parse!(
+        multispace0             >>
                  tag!("NS_ :")  >>
                  space0         >>
                  line_ending    >>
@@ -1188,6 +1212,7 @@ named!(pub new_symbols<&str, Vec<Symbol>, VerboseError<&str>>,
 //
 named!(pub node<&str, Node, VerboseError<&str>>,
     do_parse!(
+            multispace0                           >>
             tag!("BU_:")                          >>
         li: opt!(preceded!(ms, separated_list0!(ms, c_ident))) >>
         space0                                    >>
@@ -1198,6 +1223,7 @@ named!(pub node<&str, Node, VerboseError<&str>>,
 
 named!(pub signal_type_ref<&str, SignalTypeRef, VerboseError<&str>>,
     do_parse!(
+                          multispace0     >>
                           tag!("SGTYPE_") >>
                           ms              >>
         message_id:       message_id      >>
@@ -1219,6 +1245,7 @@ named!(pub signal_type_ref<&str, SignalTypeRef, VerboseError<&str>>,
 
 named!(pub value_table<&str, ValueTable, VerboseError<&str>>,
     do_parse!(
+                            multispace0             >>
                             tag!("VAL_TABLE_")      >>
                             ms                      >>
         value_table_name:   c_ident                 >>
@@ -1245,6 +1272,7 @@ named!(pub signal_extended_value_type<&str, SignalExtendedValueType, VerboseErro
 
 named!(pub signal_extended_value_type_list<&str, SignalExtendedValueTypeList, VerboseError<&str>>,
     do_parse!(
+        multispace0                                            >>
         tag!("SIG_VALTYPE_")                                   >>
         ms                                                     >>
         message_id: message_id                                 >>
@@ -1274,6 +1302,7 @@ named!(pub message_transmitters<&str, Vec<Transmitter>, VerboseError<&str>>, sep
 
 named!(pub message_transmitter<&str, MessageTransmitter, VerboseError<&str>>,
     do_parse!(
+                     multispace0            >>
                      tag!("BO_TX_BU_")      >>
                      ms                     >>
         message_id:  message_id             >>
@@ -1292,6 +1321,7 @@ named!(pub message_transmitter<&str, MessageTransmitter, VerboseError<&str>>,
 
 named!(pub signal_groups<&str, SignalGroups, VerboseError<&str>>,
     do_parse!(
+        multispace0 >>
         tag!("SIG_GROUP_")                                   >>
         ms                                                   >>
         message_id: message_id                               >>
@@ -1314,28 +1344,39 @@ named!(pub signal_groups<&str, SignalGroups, VerboseError<&str>>,
     )
 );
 
+//
+
+//
+
 named!(pub dbc<&str, DBC, VerboseError<&str>>,
-    do_parse!(
-        multispace0 >>
-        version:                         version                                 >> multispace0 >>
-        new_symbols:                     new_symbols                             >> multispace0 >>
-        bit_timing:                      opt!(bit_timing)                        >> multispace0 >>
-        nodes:                           many0!(node)                            >> multispace0 >>
-        value_tables:                    many0!(value_table)                     >> multispace0 >>
-        messages:                        many0!(message)                         >> multispace0 >>
-        message_transmitters:            many0!(message_transmitter)             >> multispace0 >>
-        environment_variables:           many0!(environment_variable)            >> multispace0 >>
-        environment_variable_data:       many0!(environment_variable_data)       >> multispace0 >>
-        signal_types:                    many0!(signal_type)                     >> multispace0 >>
-        comments:                        many0!(comment)                         >> multispace0 >>
-        attribute_definitions:           many0!(attribute_definition)            >> multispace0 >>
-        attribute_defaults:              many0!(attribute_default)               >> multispace0 >>
-        // attribute_values:                many0!(attribute_value_for_object)      >> multispace0 >>
-        // value_descriptions:              many0!(value_descriptions)              >> multispace0 >>
-        // signal_type_refs:                many0!(signal_type_ref)                 >> multispace0 >>
-        // signal_groups:                   many0!(signal_groups)                   >> multispace0 >>
-        // signal_extended_value_type_list: many0!(signal_extended_value_type_list) >> multispace0 >>
-        (DBC {
+    map!(
+        do_parse!(
+            tpl: permutation!(
+                version    ,
+                new_symbols,
+                opt!(bit_timing),
+                many0!(node),
+                many0!(value_table),
+                many0!(message),
+                many0!(message_transmitter),
+                many0!(environment_variable),
+                many0!(environment_variable_data),
+                many0!(signal_type),
+                many0!(comment),
+                many0!(attribute_definition),
+                many0!(attribute_default),
+                many0!(attribute_value_for_object),
+                many0!(value_descriptions),
+                many0!(signal_type_ref),
+                many0!(signal_groups),
+                many0!(signal_extended_value_type_list)
+            ) >>
+            //TODO figure out whats not working here
+            multispace0 >>
+            (tpl)
+        ),
+        |(version, new_symbols, bit_timing, nodes, value_tables, messages, message_transmitters, environment_variables, environment_variable_data, signal_types, comments, attribute_definitions, attribute_defaults, attribute_values, value_descriptions, signal_type_refs, signal_groups, signal_extended_value_type_list)|
+        DBC {
             version,
             new_symbols,
             bit_timing,
@@ -1349,13 +1390,11 @@ named!(pub dbc<&str, DBC, VerboseError<&str>>,
             comments,
             attribute_definitions,
             attribute_defaults,
-            
-            FIX HERE
-            attribute_values: Vec::new(),
-            value_descriptions: Vec::new(),
-            signal_type_refs: Vec::new(),
-            signal_groups: Vec::new(),
-            signal_extended_value_type_list: Vec::new(),
-        })
+            attribute_values,
+            value_descriptions,
+            signal_type_refs,
+            signal_groups,
+            signal_extended_value_type_list
+        }
     )
 );
